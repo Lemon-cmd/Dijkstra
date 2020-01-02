@@ -47,7 +47,7 @@ class MinHeap
             //initialize their values to null pointers
             head = (Node*)malloc(sizeof(Node));
             bottom = (Node*)malloc(sizeof(Node));
-            
+
             head->current = nullptr;
             head->next = nullptr; 
             head->prev = nullptr; 
@@ -74,23 +74,28 @@ class MinHeap
             {
                 head->current = item;
                 head->next = bottom;
+                head->prev = nullptr;
                 bottom->prev = head;
                 count += 1;
             }
 
-            else if (bottom->current == nullptr)    // if bottom is empty
+            else if (bottom->current == nullptr && count == 1)    // if bottom is empty
             {
                 if (head->current->cost < item->cost)
                 {
-                    Node* oldH =  head; 
-                    bottom->current  =  oldH->current;
+                    bottom->current = head->current;
+                    bottom->prev = head;
                     head->current = item;
+                    head->next = bottom;
+                    head->prev = nullptr;
                     count += 1;
                 }
 
                 else 
                 {
                     bottom->current = item;
+                    bottom->prev = head;
+                    head->next = bottom;
                     count += 1;
                 }
             }
@@ -100,30 +105,36 @@ class MinHeap
                 if (head->current->cost <= item->cost)  // check if head is lower than new item
                 {
                     //set new item as the new head
-                    Node* oldH = head; 
+                    Node* oldH = new Node();
+                    oldH->current = head->current;
+                    oldH->next = head->next;
+                    head->next->prev = oldH;
                     head->current = item; 
                     head->next = oldH;
-                    oldH->prev = head; 
                     head->prev = nullptr;
+                    oldH->prev = head;
                     count += 1;
                 }
 
                 else if (bottom->current->cost >= item->cost)   // check if bottom is greater than new item
                 {
                     //set new item as the new bottom
-                    Node* oldB = bottom;
+                    Node* oldB = new Node();
+                    oldB->current = bottom->current;
+                    oldB->prev = bottom->prev;
+                    bottom->prev->next = oldB;
                     bottom->current = item;
                     bottom->prev = oldB;
                     bottom->next = nullptr; 
-                    oldB->next = bottom; 
+                    oldB->next = bottom;
                     count += 1;
                 }
 
                 else 
-                {   
+                {  
                     //Look up a node that is less than item
                     Node* start = bottom;
-                    while (start->prev != nullptr && start->current->cost <= item->cost)
+                    while (start->prev != nullptr && start->current->cost < item->cost)
                     {
                         start = start->prev;
                     }
@@ -183,17 +194,30 @@ class MinHeap
         void display()
         {
             // Method for displaying the Heap
-            Node* start = bottom;
-            while (start->prev != nullptr)
+            
+            if (count > 0)
             {
-                display_path(start->current->path);
-                start = start->prev;
-            }
+                if (count == 1)
+                {
+                    display_path(head->current->path);
+                }
 
-            if (start->current != nullptr)
-            {
-                display_path(start->current->path);
+                else if (count > 1)
+                {
+                    Node* start = bottom;
+                    while (start->prev != nullptr)
+                    {
+                        display_path(start->current->path);
+                        start = start->prev;
+                    }
+
+                    if (start->current != nullptr)
+                    {
+                        display_path(start->current->path);
+                    }
+                }
             }
+             
         }
 };
 
@@ -213,11 +237,17 @@ class Dijkstra
 
         void create(string origin, string destination, int cost)
         {
-            //Create an Edge using a pair
-            pair<string, int> item;
-            item = make_pair(destination, cost); 
+             //Create an Edge using a pair
+            pair<string, int> origin_dest;
+            origin_dest = make_pair(destination, cost); 
             
-            neighbors[origin].push_back(item);    //push into the corresponding list of the origin in neighbor
+            pair<string, int> dest_origin;
+            dest_origin = make_pair(origin, cost);
+            
+            //bi-directional edge
+            neighbors[origin].push_back(origin_dest);           
+            neighbors[destination].push_back(dest_origin);
+           
             //cout << "Origin: " << origin << " # of edges: " << neighbors[origin].size() << endl;
         }
 
@@ -244,8 +274,8 @@ class Dijkstra
             
             while (route.isEmpty() != true)
             {
-
-                Node current_entry = route.pop();       // Grab the pop'd Node
+                //route.display();
+                Node current_entry = route.pop();                   // Grab the pop'd Node
                 int cost = current_entry.current->cost;             // set cost
                 vector<string> path = current_entry.current->path;  // set vector
 
@@ -268,7 +298,7 @@ class Dijkstra
                         cout  << path[i] << "  " ;
                     }
                     cout << " " << endl;
-                    break;
+                    
                 }
 
                 // Grab all of current's edges with its neighbors
@@ -284,12 +314,12 @@ class Dijkstra
                         new_edge->cost = new_cost;                                  // assign new values to struct
                         new_edge->path = new_path;
 
-                        route.push(new_edge);           //push in the new edge
+                        route.push(new_edge);                                       //push in the new edge
                     }
                 }
                 
                 visited.insert(current);                // insert current to visited set
-
+            
             }
         
         }
@@ -299,6 +329,7 @@ class Dijkstra
 int main()
 {
     Dijkstra search = Dijkstra();
+    
     search.make("A");
     search.make("B");
     search.make("C");
@@ -312,25 +343,119 @@ int main()
     search.make("K");
     search.make("L");
     search.make("M");
+    search.make("N");
+    search.make("O");
+    search.make("P");
 
-    search.create("A", "B", 3);
-    search.create("A", "G", 2);
-    search.create("A", "H", 2);
-    search.create("B", "C", 4);
-    search.create("C", "D", 2);
-    search.create("D", "E", 1);
-    search.create("E", "M", 2);
-    search.create("G", "F", 6);
-    search.create("B", "G", 1);
-    search.create("C", "F", 2);
-    search.create("F", "E", 1);
-    search.create("E", "L", 1);
-    search.create("H", "I", 2);
-    search.create("G", "H", 1);
-    search.create("I", "K", 3);
-    search.create("K", "L", 5);
-    search.create("L", "M", 1);
+    search.make("AA");
+    search.make("BB");
+    search.make("CC");
+    search.make("DD");
+    search.make("EE");
+    search.make("FF");
+    search.make("GG");
+    search.make("HH");
+    search.make("II");
+    search.make("JJ");
+    search.make("KK");
+    search.make("LL");
     
-    search.search("A", "M");
+    search.make("W1");
+    search.make("W2");
+    search.make("W3");
+    search.make("W4");
+    
 
+    search.make("Z0");
+    search.make("Z1");
+    search.make("Z3");
+    search.make("Z4");
+    
+    search.make("Z5");
+    search.make("Z6");
+    search.make("Z7");
+    search.make("Z8");
+
+    search.make("Z9");
+    search.make("Z10");
+    search.make("Z11");
+    search.make("Z12");
+    
+    search.create("A", "B", 1);
+    search.create("A", "W1", 1);
+    search.create("A", "AA", 1);
+
+    search.create("W1", "W2", 2);
+    search.create("W2", "W3", 1);
+    search.create("W3", "W4", 2);
+
+    search.create("B", "W2", 1);
+    search.create("B", "BB", 1);
+    search.create("B", "C", 3);
+    
+    search.create("C", "W3", 1);
+    search.create("C", "CC", 1);
+    search.create("C", "D", 2);
+
+    search.create("D", "W4", 1);
+    search.create("D", "E", 1);
+    search.create("D", "DD", 1);
+
+    search.create("E", "F", 1);
+    search.create("E", "EE", 1);
+
+    search.create("F", "G", 1);
+    search.create("F", "FF", 1);
+    
+    search.create("G", "H", 5);
+    search.create("G", "GG", 1);
+    
+    search.create("H", "I", 1);
+    search.create("H", "HH", 1);
+    
+    search.create("I", "II", 1);
+    search.create("I", "J", 1);
+    
+    search.create("J", "K", 6);
+    search.create("J", "JJ", 1);
+    
+    search.create("K", "L", 1);
+    search.create("K", "KK", 1);
+    
+    search.create("L", "M", 1);
+    search.create("L", "LL", 1);
+    
+    search.create("M", "N", 3);
+    search.create("N", "O", 1);
+    search.create("O", "P", 1);
+    
+    search.create("M", "Z0", 3);
+    search.create("N", "Z1", 5);
+    search.create("O", "Z2", 2);
+    search.create("P", "Z3", 1);
+    
+    search.create("Z0", "Z5", 1);
+    search.create("Z1", "Z6", 1);
+    search.create("Z2", "Z7", 1);
+    search.create("Z3", "Z8", 1);
+
+    search.create("Z1", "Z9", 2);
+    search.create("Z9", "Z10", 1);
+    search.create("Z10", "Z11", 2);
+    search.create("Z11", "Z12", 1);
+
+    search.create("Z8", "Z12", 10);
+    
+    search.create("AA", "BB", 1);
+    search.create("BB", "CC", 1);
+    search.create("CC", "DD", 1);
+    search.create("DD", "EE", 1);
+    search.create("EE", "FF", 1);
+    search.create("FF", "GG", 1);
+    search.create("GG", "HH", 1);
+    search.create("HH", "II", 1);
+    search.create("JJ", "KK", 1);
+    search.create("KK", "LL", 1);
+    search.search("A", "Z12");
+     
 }
